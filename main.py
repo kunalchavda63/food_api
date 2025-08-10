@@ -27,6 +27,7 @@ def signup():
     name = data.get("name", "").strip()
     email = data.get("email", "").strip()
     password = data.get("password", "")
+    role = data.get("role", "user").strip().lower()
 
     if not name or not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
@@ -36,11 +37,11 @@ def signup():
 
     hashed_pw = bcrypt.generate_password_hash(password).decode("utf-8")
 
-    new_user = User(name=name, email=email, password=hashed_pw)
+    new_user = User(name=name, email=email, password=hashed_pw, role=role)
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({"message": "User created successfully", "user_id": new_user.id}), 201
+    return jsonify({"message": "User created successfully", "user_id": new_user.id,"role": new_user.role}), 201
 
 
 @app.route(Routes.LOGIN, methods=[Methods.POST])
@@ -75,7 +76,8 @@ def all_users():
         {
             "id": user.id,
             "name": user.name,
-            "email": user.email
+            "email": user.email,
+            "role": user.role
         }
         for user in pagination.items
 
@@ -88,6 +90,25 @@ def all_users():
         "pages": pagination.pages
 
     }), 200
+
+@app.route(Routes.DELETE_USER, methods=[Methods.DELETE])
+def delete_user():
+    data = request.get_json(silent=True) or {}
+    user_id = data.get("id")
+
+    if not user_id:
+        return  jsonify({"error" : "User Id is required"}), 400
+
+    user = User.query.get(user_id)
+    if not user:
+        return  jsonify({"error": "User Not Found"}), 404
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return  jsonify({"message": f"User with ID {user_id} deleted Successfully"}), 200
+
+
 
 
 if __name__ == "__main__":
