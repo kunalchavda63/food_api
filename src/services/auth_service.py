@@ -2,6 +2,7 @@ from passlib.hash import bcrypt
 from datetime import datetime, timedelta
 import jwt
 from ..config.config import settings
+from pymongo import ReturnDocument
 
 # password helpers
 
@@ -22,3 +23,12 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 def decode_token(token: str) -> dict:
     return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+
+async def get_next_user_id(db):
+    counter = await  db["counters"].find_one_and_update(
+        {"_id":"user_id"},
+        {"$inc":{"seq": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+    return counter["seq"]

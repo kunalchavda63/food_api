@@ -26,3 +26,6 @@ app.middleware("http")(request_logger_middleware)
 @app.get("/health", tags=["system"])
 async def health_check():
     return {"status": "ok", "app": settings.APP_NAME}
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)

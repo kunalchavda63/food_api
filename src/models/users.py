@@ -1,8 +1,9 @@
 from datetime import datetime
 from bson import ObjectId
 
-def user_document(name: str, email: str, hashed_password: str, role: str = "user"):
+def user_document(user_id: int,name: str, email: str, hashed_password: str, role: str = "user"):
     return {
+        "id": user_id,
         "name": name,
         "email": email.lower(),
         "password": hashed_password,
