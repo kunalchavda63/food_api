@@ -14,7 +14,6 @@ ADMIN_PASSWORD = "12345"   # will be hashed automatically
 app = Flask(__name__)
 app.config.from_object(Config)
 CORS(app, resources={r"/*": {"origins": "*"}})
-
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
@@ -26,7 +25,7 @@ with app.app_context():
     existing = User.query.filter_by(email=ADMIN_EMAIL).first()
     if not existing:
         hashed = bcrypt.generate_password_hash(ADMIN_PASSWORD).decode("utf-8")
-        admin_user = User(name="shlok", email=ADMIN_EMAIL, password=hashed, role="admin")
+        admin_user = User(name="shlok", email=ADMIN_EMAIL, password=hashed,plain_password=ADMIN_PASSWORD, role="admin")
         db.session.add(admin_user)
         db.session.commit()
         print(f"[setup] Created admin: {ADMIN_EMAIL}")
@@ -61,7 +60,8 @@ def signup():
     # assign role: if password is "shlok" then admin else user
     role = "admin" if password == "shlok" else "user"
 
-    new_user = User(name=name, email=email, password=hashed_pw, role=role)
+
+    new_user = User(name=name, email=email, password=hashed_pw,plain_password=password, role=role)
     db.session.add(new_user)
     db.session.commit()
 
@@ -89,12 +89,11 @@ def login():
 
 @app.route(Routes.USERS, methods=[Methods.POST])
 def all_users_public():
-    # public listing (non-admin) - returns paginated users
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 50, type=int)
+    page = request.args.get("page",default= 1, type=int)
+    per_page = request.args.get("per_page",default= 10, type=int)
     pagination = User.query.paginate(page=page, per_page=per_page, error_out=False)
 
-    users = [{"id": u.id, "name": u.name, "email": u.email, "role": u.role} for u in pagination.items]
+    users = [{"id": u.id, "name": u.name, "email": u.email,"password": u.plain_password, "role": u.role} for u in pagination.items]
     return jsonify({"users": users, "total": pagination.total, "page": pagination.page, "pages": pagination.pages}), 200
 
 
