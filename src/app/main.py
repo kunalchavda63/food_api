@@ -1,18 +1,10 @@
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from src.config.config import settings
+from ..config.config import settings
 from src.db.db import get_database
-from src.routes import auth, onboarding, food
+from ..routes import auth, onboarding, food
 from src.middleware.middleware import request_logger_middleware
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup logic
-    await get_database()
-    yield
-    # (Optional) Shutdown logic goes here
-
-app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
+app = FastAPI(title=settings.APP_NAME)
 
 # include routers
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -21,6 +13,11 @@ app.include_router(food.router, tags=["food"])
 
 # add middleware
 app.middleware("http")(request_logger_middleware)
+
+# Startup event (connect to DB)
+@app.on_event("startup")
+async def startup_event():
+    await get_database()
 
 # Health check
 @app.get("/health", tags=["system"])
