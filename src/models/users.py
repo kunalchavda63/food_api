@@ -1,5 +1,9 @@
 from datetime import datetime
+from typing import Optional, Dict
+
 from bson import ObjectId
+from pydantic import BaseModel
+
 
 def user_document(user_id: int,name: str, email: str, hashed_password: str, role: str = "user"):
     return {
@@ -24,3 +28,15 @@ def sanitize_user(doc: dict):
         "onboarded": doc.get("onboarded", False),
         "profile": doc.get("profile", {}),
     }
+
+class UserModel(BaseModel):
+    id: int
+    name: str
+    email: str
+    password: str
+    role: str
+    profile: Optional[Dict] = None
+    onboarded: Optional[bool]
+
+    class Config:
+        orm_mode = True
