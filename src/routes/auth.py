@@ -39,13 +39,21 @@ class LoginRequest(BaseModel):
 @router.post("/login")
 async def login(request: LoginRequest, db=Depends(get_database)):
     users_collection = db["users"]
-    user = await users_collection.find_one({"email": request.email})
-    if not user or not bcrypt.checkpw(request.password.encode("utf-8"), user["password"].encode("utf-8")):
+
+    # Always match emails in lowercase
+    user = await users_collection.find_one({"email": request.email.lower()})
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # Check password hash
+    if request.password != user["password"]:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
     return {
-        "user_id": str(user["id"]),
+        "user_id": user["id"],  # Keep int type for consistency
         "message": "Login successful"
     }
+
 
 @router.get("/all_users", response_model=List[UserModel])
 async def get_all_users(
@@ -79,3 +87,15 @@ async def get_user_by_id(user_id: int, db=Depends(get_database)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+
+@router.delete("/users/delete/{user_id}")
+async def delete_user(user_id:int, db=Depends(get_database)):
+    user_collection = db["users"]
+
+    result = await  user_collection.delete_one({"id": user_id})
+
+    if result.deleted_count == 0:
+       raise HTTPException(status_code=404, detail = "User not found")
+    return {"message": f"User with ID {user_id} deleted successfully"}
