@@ -1,7 +1,7 @@
-from typing import List
 
+from typing import List
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from src.db.db import get_database
@@ -42,16 +42,34 @@ async def login(request: LoginRequest, db=Depends(get_database)):
     user = await users_collection.find_one({"email": request.email})
     if not user or not bcrypt.checkpw(request.password.encode("utf-8"), user["password"].encode("utf-8")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    return {"message": "Login successful"}
-
-
+    return {
+        "user_id": str(user["id"]),
+        "message": "Login successful"
+    }
 
 @router.get("/all_users", response_model=List[UserModel])
-async def get_all_users(db=Depends(get_database)):
+async def get_all_users(
+    page: int = Query(1, ge=1, description="Page number (must be >= 1)"),
+    limit: int = Query(10, ge=1, le=100, description="Items per page (1-100)"),
+    db=Depends(get_database)
+):
+    if page < 1:
+        page = 1
+    if limit < 1:
+        limit = 1
+    elif limit > 100:
+        limit = 100
+
+    skip = (page - 1) * limit
     user_collection = db["users"]
 
-    users_list = await user_collection.find({},{"_id":0}).to_list(length=None)
+    users_list = await user_collection.find({}, {"_id": 0}) \
+                                      .skip(skip) \
+                                      .limit(limit) \
+                                      .to_list(length=limit)
+
     return users_list
+
 
 
 @router.get("/users/{user_id}", response_model=UserModel)
