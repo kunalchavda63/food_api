@@ -5,10 +5,10 @@ from bson import ObjectId
 from pydantic import BaseModel
 
 
-def user_document(user_id: int,name: str, email: str, hashed_password: str, role: str = "user"):
+def user_document(user_id: int,username: str, email: str, hashed_password: str, role: str = "user"):
     return {
         "id": user_id,
-        "name": name,
+        "username": username,
         "email": email.lower(),
         "password": hashed_password,
         "role": role,
@@ -22,7 +22,7 @@ def sanitize_user(doc: dict):
         return None
     return {
         "id": str(doc.get("_id")),
-        "name": doc.get("name"),
+        "username": doc.get("username"),
         "email": doc.get("email"),
         "role": doc.get("role"),
         "onboarded": doc.get("onboarded", False),
@@ -31,7 +31,7 @@ def sanitize_user(doc: dict):
 
 class UserModel(BaseModel):
     id: int
-    name: str
+    username: str
     email: str
     password: str
     role: str

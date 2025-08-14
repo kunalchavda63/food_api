@@ -22,6 +22,7 @@ async def signup(request: SignupRequest, db=Depends(get_database)):
 
     if await users_collection.find_one({"email": request.email}):
         raise HTTPException(status_code=400, detail="Email already exists")
+
     next_id = await  get_next_user_id(db)
 
     hashed_pw = bcrypt.hashpw(request.password.encode("utf-8"), bcrypt.gensalt())
@@ -41,16 +42,17 @@ async def login(request: LoginRequest, db=Depends(get_database)):
     users_collection = db["users"]
 
     # Always match emails in lowercase
-    user = await users_collection.find_one({"email": request.email.lower()})
+    email = request.email.lower()
+    user = await users_collection.find_one({"email": email})
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    # Check password hash
-    if request.password != user["password"]:
+    # Check password hash correctly
+    if not bcrypt.checkpw(request.password.encode("utf-8"), user["password"].encode("utf-8")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     return {
-        "user_id": user["id"],  # Keep int type for consistency
+        "user_id": user["id"],
         "message": "Login successful"
     }
 
